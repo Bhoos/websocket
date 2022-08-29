@@ -1,0 +1,22 @@
+{
+  "name": "reliable-websocket",
+  "version": "0.0.0",
+  "description": "reliable websocket client",
+  "main": "dist/index.js",
+  "repository": "https://github.com/Bhoos/websocket",
+  "author": "Bibek Panthi <bpanthi977@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "rm -r dist/ && tsc",
+    "watch": "yarn build --watch"
+  },
+  "dependencies": {
+    "ring-buffer-ts": "^1.0.3",
+    "ws": "^8.8.1"
+  },
+  "devDependencies": {
+      "@types/ws": "^8.5.3",
+      "typescript": "^4.1.3"
+  }
+}
