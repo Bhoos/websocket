@@ -29,12 +29,12 @@ export class ReliableWS {
 
   onopen: ((event: WebSocket.Event) => void) | null = null;
   onerror: ((event: WebSocket.ErrorEvent) => void) | null  = null;
-  onclose: ((event: WebSocket.CloseEvent) => void) | null = null; 
+  onclose: ((event: WebSocket.CloseEvent) => void) | null = null;
   onmessage: ((event: WebSocket.MessageEvent) => void) | null = null;
 
 
   constructor(address : string, options : WebSocket.ClientOptions & Config = { PING_INTERVAL : 5000, RECONNECT_INTERVAL:500, MSG_BUFFER_SIZE:0}) {
-    this.address = address; 
+    this.address = address;
     const keys = ['PING_INTERVAL', 'RECONNECT_INTERVAL', 'MSG_BUFFER_SIZE'];
     const [config, opts] = partitionObject(options, (key) => {
       return keys.includes(key);
@@ -52,17 +52,18 @@ export class ReliableWS {
     this.ws.on('error', (event : WebSocket.ErrorEvent) => {
       if (this.onerror) this.onerror(event);
     });
+
     this.ws.once('open', (event : WebSocket.Event) => {
       this.wsOpen = true;
       if (this.onopen && !this.onceOpened) this.onopen(event); // this is triggerred on the first time only
       this.onceOpened = true;
-      if (this.onmessage && this.ws) this.ws.onmessage = this.onmessage; 
+      if (this.onmessage && this.ws) this.ws.onmessage = this.onmessage;
       const queued: string[] = this.msgBuffer.toArray();
       this.msgBuffer.clear();
       for (const msg of queued) {
 	this.ws?.send(msg);
       }
-
+      if (this.shuttingDown) this.ws?.close();
     });
 
     this.ws.on('close', (event : WebSocket.CloseEvent) => {
@@ -109,6 +110,6 @@ export class ReliableWS {
     this.shuttingDown = true;
     if (this.pingTimer) clearInterval(this.pingTimer);
     if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
-    if (this.ws) this.ws.close();
+    if (this.ws && this.wsOpen) this.ws.close();
   }
 }

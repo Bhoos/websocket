@@ -5,20 +5,30 @@ This library provides a reliable websocket connection. It sends heartbeats (ping
 
 # Use
 ```ts
-import WSAgent from 'websocket';
+import {ReliableWS} from './index.js'
 
-// websocket options + ping, reconnect & buffer options
 const config = {
-  PING_INTERVAL: 5000, // ms
+  PING_INTERVAL: 1000, // ms
   RECONNECT_INTERVAL: 5000, // ms
   MSG_BUFFER_SIZE: 20,
   headers : {
 	 Authorization : 'Bearer <<TOKEN>>'
   }
-
 }
 
-const agent = new WSAgent('ws://abcd.com/efgh', config);
+const agent = new ReliableWS('ws://localhost:3030/subscribe/', config);
 
-agent.send('Hi!');
+agent.send('Hi');
+
+agent.onerror = (event) => {
+  console.log("Error: ", event);
+}
+
+agent.onopen = (event) => {
+  console.log("Opened!!");
+}
+
+agent.onmessage = (event) => {
+  console.log(event.data);
+};
 ```
