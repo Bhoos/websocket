@@ -1,10 +1,9 @@
-import WebSocket from 'ws';
 import RingBuffer from 'ring-buffer-ts';
-import { partitionObject } from './utils.js';
 
 export type Config = {
   // all time intervals are in miliseconds
   PING_INTERVAL: number; // Agents sends ping to management server every `PING_INTERVAL`
+  PING_MESSAGE: string;
   RECONNECT_INTERVAL: number; // If in any case the connection is broken then a reconnect attempt is made every `RECONNECT_INTERVAL`
   MSG_BUFFER_SIZE: number; // number of messages to remember and send later (if the connection doesnot exist, or is broken)
 };
@@ -13,11 +12,9 @@ export type Config = {
 // it sends heartbeats (ping), reconnects if connection is broken
 // and also keeps a buffer for messages that were send while the connection is down
 // and those messages are later sent when connection is up
-
 export class ReliableWS {
   private ws?: WebSocket;
   private address: string;
-  private options: WebSocket.ClientOptions;
   private config: Config;
 
   private wsOpen: boolean = false;
@@ -27,26 +24,14 @@ export class ReliableWS {
   private reconnectTimeout?: ReturnType<typeof setTimeout>;
   private shuttingDown: boolean = false;
 
-  onopen: ((event: WebSocket.Event) => void) | null = null;
-  onerror: ((event: WebSocket.ErrorEvent) => void) | null = null;
-  onclose: ((event: WebSocket.CloseEvent) => void) | null = null;
-  onmessage: ((event: WebSocket.MessageEvent) => void) | null = null;
+  onopen: ((event: Event) => void) | null = null;
+  onerror: ((event: Event) => void) | null = null;
+  onclose: ((event: Event) => void) | null = null;
+  onmessage: ((event: MessageEvent) => void) | null = null;
 
-  constructor(
-    address: string,
-    options: WebSocket.ClientOptions & Config = {
-      PING_INTERVAL: 5000,
-      RECONNECT_INTERVAL: 500,
-      MSG_BUFFER_SIZE: 0,
-    },
-  ) {
+  constructor(address: string, options: Config) {
     this.address = address;
-    const keys = ['PING_INTERVAL', 'RECONNECT_INTERVAL', 'MSG_BUFFER_SIZE'];
-    const [config, opts] = partitionObject(options, key => {
-      return keys.includes(key);
-    });
-    this.config = config as Config;
-    this.options = opts;
+    this.config = options;
     this.msgBuffer = new RingBuffer.RingBuffer(this.config.MSG_BUFFER_SIZE);
     this.setupConnection();
   }
@@ -54,12 +39,12 @@ export class ReliableWS {
   private setupConnection() {
     if (this.shuttingDown) return;
     this.changeConfig(this.config);
-    this.ws = new WebSocket(this.address, this.options);
-    this.ws.on('error', (event: WebSocket.ErrorEvent) => {
+    this.ws = new WebSocket(this.address);
+    this.ws.onerror = event => {
       if (this.onerror) this.onerror(event);
-    });
+    };
 
-    this.ws.once('open', (event: WebSocket.Event) => {
+    this.ws.onopen = (event: Event) => {
       this.wsOpen = true;
       if (this.onopen && !this.onceOpened) this.onopen(event); // this is triggerred on the first time only
       this.onceOpened = true;
@@ -70,9 +55,9 @@ export class ReliableWS {
         this.ws?.send(msg);
       }
       if (this.shuttingDown) this.ws?.close();
-    });
+    };
 
-    this.ws.on('close', (event: WebSocket.CloseEvent) => {
+    this.ws.onclose = (event: Event) => {
       if (this.shuttingDown) {
         if (this.onclose) this.onclose(event);
         return;
@@ -84,7 +69,7 @@ export class ReliableWS {
         this.setupConnection.bind(this),
         this.config.RECONNECT_INTERVAL,
       );
-    });
+    };
   }
 
   changeConfig(config: Config) {
@@ -92,7 +77,8 @@ export class ReliableWS {
     if (this.pingTimer) {
       clearInterval(this.pingTimer);
     }
-    this.pingTimer = setInterval(this.pingIfUp.bind(this), this.config.PING_INTERVAL);
+    if (this.config.PING_INTERVAL != 0)
+      this.pingTimer = setInterval(this.pingIfUp.bind(this), this.config.PING_INTERVAL);
     if (this.msgBuffer.getSize() != this.config.MSG_BUFFER_SIZE) {
       const newBuffer = new RingBuffer.RingBuffer<string>(this.config.MSG_BUFFER_SIZE);
       newBuffer.add(...this.msgBuffer.toArray());
@@ -100,8 +86,8 @@ export class ReliableWS {
     }
   }
 
-  private pingIfUp(data: any = '') {
-    this.ws?.ping(data);
+  private pingIfUp() {
+    this.ws?.send(this.config.PING_MESSAGE);
   }
 
   send(msg: any) {
