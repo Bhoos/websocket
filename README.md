@@ -5,7 +5,7 @@ This library provides a reliable websocket connection. It sends heartbeats (ping
 
 # Use
 ```ts
-import {ReliableWS} from './index.js'
+import {ReliableWS} from 'reliable-websocket'
 
 const config = {
   PING_INTERVAL: 1000, // ms
