@@ -8,11 +8,32 @@ export type Config = {
   MSG_BUFFER_SIZE: number; // number of messages to remember and send later (if the connection doesnot exist, or is broken)
 };
 
+interface Event {
+  type: string;
+}
+
+interface ErrorEvent extends Event {}
+
+interface CloseEvent extends Event {
+  wasClean: boolean;
+  code: number;
+  reason: string;
+}
+
+interface MessageEvent extends Event {
+  data: any;
+}
+
 // WSAgent provides a reliable websocket connection
 // it sends heartbeats (ping), reconnects if connection is broken
 // and also keeps a buffer for messages that were send while the connection is down
 // and those messages are later sent when connection is up
-export class ReliableWS {
+export class ReliableWS<
+  Ev extends Event,
+  ErrorEv extends ErrorEvent,
+  CloseEv extends CloseEvent,
+  MessageEv extends MessageEvent,
+> {
   private ws?: WebSocket;
   private address: string;
   private config: Config;
@@ -24,10 +45,10 @@ export class ReliableWS {
   private reconnectTimeout?: ReturnType<typeof setTimeout>;
   private shuttingDown: boolean = false;
 
-  onopen: ((event: Event) => void) | null = null;
-  onerror: ((event: Event) => void) | null = null;
-  onclose: ((event: Event) => void) | null = null;
-  onmessage: ((event: MessageEvent) => void) | null = null;
+  onopen: ((event: Ev) => void) | null = null;
+  onerror: ((event: ErrorEv) => void) | null = null;
+  onclose: ((event: CloseEv) => void) | null = null;
+  onmessage: ((event: MessageEv) => void) | null = null;
 
   constructor(address: string, options: Config) {
     this.address = address;
@@ -40,15 +61,26 @@ export class ReliableWS {
     if (this.shuttingDown) return;
     this.changeConfig(this.config);
     this.ws = new WebSocket(this.address);
-    this.ws.onerror = event => {
+
+    this.ws.onerror = _event => {
+      const event = _event as unknown as ErrorEv;
       if (this.onerror) this.onerror(event);
     };
 
-    this.ws.onopen = (event: Event) => {
+    this.ws.onopen = _event => {
+      const event = _event as unknown as Ev;
       this.wsOpen = true;
-      if (this.onopen && !this.onceOpened) this.onopen(event); // this is triggerred on the first time only
-      this.onceOpened = true;
-      if (this.onmessage && this.ws) this.ws.onmessage = this.onmessage;
+      if (this.onopen && !this.onceOpened) {
+        this.onceOpened = true;
+        this.onopen(event); // this is triggerred on the first time only
+      }
+
+      if (this.ws)
+        this.ws.onmessage = _event => {
+          const event = _event as unknown as MessageEv;
+          if (this.onmessage) this.onmessage(event);
+        };
+
       const queued: string[] = this.msgBuffer.toArray();
       this.msgBuffer.clear();
       for (const msg of queued) {
@@ -57,7 +89,8 @@ export class ReliableWS {
       if (this.shuttingDown) this.ws?.close();
     };
 
-    this.ws.onclose = (event: Event) => {
+    this.ws.onclose = _event => {
+      const event = _event as unknown as CloseEv;
       if (this.shuttingDown) {
         if (this.onclose) this.onclose(event);
         return;
@@ -100,6 +133,10 @@ export class ReliableWS {
 
   close() {
     this.shuttingDown = true;
+    if (!this.onceOpened && this.config.RECONNECT_INTERVAL != 0)
+      console.debug(
+        '.close() called on Reliable Websocket, before any connection was successful. Be careful',
+      );
     if (this.pingTimer) clearInterval(this.pingTimer);
     if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
     if (this.ws && this.wsOpen) this.ws.close();
