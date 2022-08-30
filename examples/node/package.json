@@ -1,0 +1,22 @@
+{
+  "name": "test-node",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "build:cjs": "tsc",
+    "build:es6": "tsc --module esnext --outDir es6",
+    "build": "yarn build:cjs && yarn build:es6",
+    "test": "yarn build && node es6/index.js"
+  },
+  "dependencies": {
+    "@bhoos/websocket": "^0.0.0",
+    "ws": "^8.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.7.14",
+    "@types/ws": "^8.5.3",
+    "typescript": "^4.8.2"
+  }
+}
