@@ -11,6 +11,7 @@ const config = {
   PING_INTERVAL: 1000, // ms
   RECONNECT_INTERVAL: 5000, // ms
   MSG_BUFFER_SIZE: 20,
+  PING_MESSAGE : 'ping'
 }
 
 const agent = new ReliableWS('ws://localhost:3030/subscribe/', config);
