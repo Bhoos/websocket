@@ -1,0 +1,9 @@
+/node_modules/
+/yarn-error.log
+/es6/
+/.log/
+/.DS_Store
+*.DS_Store
+*.log/
+*es6/
+*node_modules/
