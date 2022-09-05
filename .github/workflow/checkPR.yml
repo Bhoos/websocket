@@ -1,0 +1,30 @@
+# This workflow check current version and the latest tag version
+# if current version and latest version is same than PR check fail
+# if current version and latest version is not same than PR check pass
+
+name: PR Check
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  pr-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Get current version and tag
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          tag="$(git describe --tag --abbrev=0 | cut -c 2-)"
+          if [ "$version" == "$tag" ]; then
+            echo "Current version and the recent tag version is same. Please update the version in package.json file."
+            exit 1;
+          else
+            echo "Current verions:$version Tag:$tag \nThis PR is ready to merge."
+            exit 0;
+          fi
