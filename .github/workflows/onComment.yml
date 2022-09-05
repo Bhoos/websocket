@@ -25,7 +25,7 @@ jobs:
           node-version: '14.x'
           registry-url: 'https://registry.npmjs.org'
           scope: '@bhoos'
-	  
+
       - name: Install Dependencies and publish packages
         run: |
           yarn
