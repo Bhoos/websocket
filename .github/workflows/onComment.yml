@@ -15,35 +15,38 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: |
-					git config user.name bhoos-devops
-					git config user.email devops@bhoos.com
-				env:
-					GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-			- uses: actions/setup-node@v1
-				with:
-					node-version: '14.x'
-					registry-url: 'https://npm.pkg.github.com'
+          git config user.name bhoos-devops
+          git config user.email devops@bhoos.com
+          echo -e "github.com\n  login $GITHUB_TOKEN" >> ~/.netrc
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '14.x'
+          registry-url: 'https://registry.npmjs.org'
 					scope: '@bhoos'
 
       - name: Install Dependencies and publish packages
-				run: |
-					yarn
-					version=$(node -p "require('./package.json').version")
-					echo "RELEASE_VERSION=v${version}" >> $GITHUB_ENV
-					echo "ISSUE_NUMBER=${{github.event.issue.number}}" >> $GITHUB_ENV
-					yarn publish --tag next
-					git push && git push --tags
-				env:
-					NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
-
+        run: |
+          yarn
+          version=$(node -p "require('./package.json').version")
+          echo "RELEASE_VERSION=v${version}" >> $GITHUB_ENV
+          echo "ISSUE_NUMBER=${{github.event.issue.number}}" >> $GITHUB_ENV
+          yarn build
+          yarn publish --tag next
+          git tag -a v${version} -m "v${version}"
+          git push && git push --tags
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
+          
       - name: Create Release for moving to production
-				uses: ncipollo/release-action@v1
-				with:
-					tag: ${{ env.RELEASE_VERSION }}
-					name: Release ${{ env.RELEASE_VERSION }} (#${{ env.ISSUE_NUMBER }})
-					commit: master
-					body: ${{steps.github_release.outputs.changelog}}
-					draft: true
-					prerelease: false
-				env:
-					GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ env.RELEASE_VERSION }}
+          name: Release ${{ env.RELEASE_VERSION }} (#${{ env.ISSUE_NUMBER }})
+          commit: master
+          body: ${{steps.github_release.outputs.changelog}}
+          draft: true
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
