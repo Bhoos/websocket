@@ -1,4 +1,15 @@
 {
+  "name": "@bhoos/websocket",
   "private": true,
-    "workspaces": ["base", "node", "browser"]
+  "workspaces": [
+    "base",
+    "node",
+    "browser"
+  ],
+  "scripts": {
+    "build": "lerna run build"
+  },
+  "devDependencies": {
+    "lerna": "^4.0.0"
+  }
 }

@@ -1,4 +1,4 @@
-import {ReliableWS, BufferType} from '@bhoos/websocket-browser';
+import {ReliableWS, BufferType} from '@bhoos/websocket';
 const config = {
   PING_INTERVAL: 1000, // ms
   RECONNECT_INTERVAL: 5000, // ms
