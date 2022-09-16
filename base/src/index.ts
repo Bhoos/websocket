@@ -1,4 +1,6 @@
-import RingBuffer from 'ring-buffer-ts';
+import {Buffer, BufferType} from './buffer.js';
+
+export { BufferType }
 
 export type Config = {
   // all time intervals are in miliseconds
@@ -6,13 +8,15 @@ export type Config = {
   PING_MESSAGE: string;
   RECONNECT_INTERVAL: number; // If in any case the connection is broken then a reconnect attempt is made every `RECONNECT_INTERVAL`
   MSG_BUFFER_SIZE: number; // number of messages to remember and send later (if the connection doesnot exist, or is broken)
+  BUFFER_TYPE: BufferType;
 };
 
 interface Event {
   type: string;
 }
 
-interface ErrorEvent extends Event {}
+interface ErrorEvent extends Event {
+}
 
 interface CloseEvent extends Event {
   wasClean: boolean;
@@ -33,6 +37,7 @@ export class ReliableWS<
   ErrorEv extends ErrorEvent,
   CloseEv extends CloseEvent,
   MessageEv extends MessageEvent,
+  WSArgs
 > {
   private ws?: WebSocket;
   private address: string;
@@ -40,27 +45,30 @@ export class ReliableWS<
 
   private wsOpen: boolean = false;
   private onceOpened: boolean = false;
-  private msgBuffer: RingBuffer.RingBuffer<any>;
+  private msgBuffer: Buffer<any>;
   private pingTimer?: ReturnType<typeof setInterval>;
   private reconnectTimeout?: ReturnType<typeof setTimeout>;
   private shuttingDown: boolean = false;
+  private wsargs? : WSArgs;
 
   onopen: ((event: Ev) => void) | null = null;
   onerror: ((event: ErrorEv) => void) | null = null;
   onclose: ((event: CloseEv) => void) | null = null;
   onmessage: ((event: MessageEv) => void) | null = null;
 
-  constructor(address: string, options: Config) {
+  constructor(address: string, options: Config, wsargs?: WSArgs ) {
     this.address = address;
     this.config = options;
-    this.msgBuffer = new RingBuffer.RingBuffer(this.config.MSG_BUFFER_SIZE);
+    this.wsargs = wsargs;
+    this.msgBuffer = new Buffer(this.config.MSG_BUFFER_SIZE, this.config.BUFFER_TYPE);
     this.setupConnection();
   }
 
   private setupConnection() {
     if (this.shuttingDown) return;
     this.changeConfig(this.config);
-    this.ws = new WebSocket(this.address);
+    //@ts-ignore
+    this.ws = new WebSocket(this.address, this.wsargs);
 
     this.ws.onerror = _event => {
       const event = _event as unknown as ErrorEv;
@@ -71,36 +79,35 @@ export class ReliableWS<
       const event = _event as unknown as Ev;
       this.wsOpen = true;
       if (this.onopen && !this.onceOpened) {
-        this.onceOpened = true;
-        this.onopen(event); // this is triggerred on the first time only
+	this.onceOpened = true;
+	this.onopen(event); // this is triggerred on the first time only
       }
 
       if (this.ws)
-        this.ws.onmessage = _event => {
-          const event = _event as unknown as MessageEv;
-          if (this.onmessage) this.onmessage(event);
-        };
+	this.ws.onmessage = _event => {
+	  const event = _event as unknown as MessageEv;
+	  if (this.onmessage) this.onmessage(event);
+	};
 
-      const queued: string[] = this.msgBuffer.toArray();
+      this.msgBuffer.forEach((msg) => {
+	this.ws?.send(msg);
+      })
       this.msgBuffer.clear();
-      for (const msg of queued) {
-        this.ws?.send(msg);
-      }
       if (this.shuttingDown) this.ws?.close();
     };
 
     this.ws.onclose = _event => {
       const event = _event as unknown as CloseEv;
       if (this.shuttingDown) {
-        if (this.onclose) this.onclose(event);
-        return;
+	if (this.onclose) this.onclose(event);
+	return;
       }
       // this means connection was closed unexpetedly
       this.wsOpen = false;
       if (this.pingTimer) clearInterval(this.pingTimer);
       this.reconnectTimeout = setTimeout(
-        this.setupConnection.bind(this),
-        this.config.RECONNECT_INTERVAL,
+	this.setupConnection.bind(this),
+	this.config.RECONNECT_INTERVAL,
       );
     };
   }
@@ -112,30 +119,30 @@ export class ReliableWS<
     }
     if (this.config.PING_INTERVAL != 0)
       this.pingTimer = setInterval(this.pingIfUp.bind(this), this.config.PING_INTERVAL);
-    if (this.msgBuffer.getSize() != this.config.MSG_BUFFER_SIZE) {
-      const newBuffer = new RingBuffer.RingBuffer<string>(this.config.MSG_BUFFER_SIZE);
+    if (this.msgBuffer.size != this.config.MSG_BUFFER_SIZE) {
+      const newBuffer = new Buffer<string>(this.config.MSG_BUFFER_SIZE, this.config.BUFFER_TYPE);
       newBuffer.add(...this.msgBuffer.toArray());
       this.msgBuffer = newBuffer;
     }
   }
 
   private pingIfUp() {
-    this.ws?.send(this.config.PING_MESSAGE);
+    if (this.wsOpen)
+      this.ws?.send(this.config.PING_MESSAGE);
   }
 
   send(msg: any) {
     if (this.wsOpen && this.ws) {
       this.ws.send(msg);
-    } else if (this.msgBuffer.getSize() != 0) {
-      this.msgBuffer.add(msg);
     }
+    this.msgBuffer.add(msg);
   }
 
   close() {
     this.shuttingDown = true;
     if (!this.onceOpened && this.config.RECONNECT_INTERVAL != 0)
       console.debug(
-        '.close() called on Reliable Websocket, before any connection was successful. Be careful',
+	'.close() called on Reliable Websocket, before any connection was successful. Be careful',
       );
     if (this.pingTimer) clearInterval(this.pingTimer);
     if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);

@@ -13,6 +13,6 @@
     "vite": "^3.0.7"
   },
   "dependencies": {
-    "@bhoos/websocket": "^0.0.0"
+    "@bhoos/websocket-browser": "^0.0.1"
   }
 }

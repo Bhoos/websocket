@@ -7,3 +7,6 @@
 *.log/
 *es6/
 *node_modules/
+dist/
+dist/*
+*/dist/*

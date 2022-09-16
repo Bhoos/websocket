@@ -1,0 +1,19 @@
+{
+  "compileOnSave": true,
+  "compilerOptions": {
+    "moduleResolution": "node",
+    "strict": true,
+    "target": "es2017",
+      "lib": ["es2017", "dom"],
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "noImplicitAny": true,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "declaration": true,
+    "outDir": "dist",
+    "sourceMap": true
+  },
+  "include": ["src/**/*"],
+    "exclude": ["node_modules", "src/node"]
+}
