@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "description": "reliable websocket client",
   "repository": "https://github.com/Bhoos/websocket",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
   "author": "Bibek Panthi <bpanthi977@gmail.com>",
   "license": "MIT",
   "browser": "es6/browser.js",
