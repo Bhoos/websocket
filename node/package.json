@@ -17,6 +17,9 @@
     "build:es6": "mkdir -p es6 && echo '{\"type\":\"module\"}' > es6/package.json && tsc --module es6 --outDir es6",
     "build": "yarn build:cjs && yarn build:es6"
   },
+ "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
   "devDependencies": {
     "@types/ws": "^8.5.3"
   }
