@@ -50,11 +50,16 @@ export class ReliableWS<
   private reconnectTimeout?: ReturnType<typeof setTimeout>;
   private shuttingDown: boolean = false;
   private wsargs? : WSArgs;
+  private tries: number  = 0;
 
   onopen: ((event: Ev) => void) | null = null;
   onerror: ((event: ErrorEv) => void) | null = null;
   onclose: ((event: CloseEv) => void) | null = null;
   onmessage: ((event: MessageEv) => void) | null = null;
+  // this event is issued when the connection is disconnected
+  // reliable websocket will nonethless be trying connection attempts.
+  // tries: number of times connection has been tried to establish since start or after the last successfull connection
+  ondisconnect: ((event : CloseEv, tries : number) => void) | null = null;
 
   constructor(address: string, options: Config, wsargs?: WSArgs ) {
     this.address = address;
@@ -78,6 +83,7 @@ export class ReliableWS<
     this.ws.onopen = _event => {
       const event = _event as unknown as Ev;
       this.wsOpen = true;
+      this.tries = 0;
       if (this.onopen && !this.onceOpened) {
 	this.onceOpened = true;
 	this.onopen(event); // this is triggerred on the first time only
@@ -98,9 +104,12 @@ export class ReliableWS<
 
     this.ws.onclose = _event => {
       const event = _event as unknown as CloseEv;
+      this.tries++;
       if (this.shuttingDown) {
 	if (this.onclose) this.onclose(event);
 	return;
+      } else {
+	if (this.ondisconnect) this.ondisconnect(event, this.tries);
       }
       // this means connection was closed unexpetedly
       this.wsOpen = false;
