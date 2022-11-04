@@ -1,0 +1,26 @@
+{
+  "name": "@bhoos/websocket-node",
+  "version": "0.0.2",
+  "main": "es6/index.js",
+  "license": "MIT",
+  "dependencies": {
+    "@bhoos/websocket-base": "^0.0.2",
+    "ws": "^8.8.1"
+  },
+  "type": "module",
+  "files": [
+    "es6",
+    "dist"
+  ],
+  "scripts": {
+    "build:cjs": "tsc",
+    "build:es6": "mkdir -p es6 && echo '{\"type\":\"module\"}' > es6/package.json && tsc --module es6 --outDir es6",
+    "build": "yarn build:cjs && yarn build:es6"
+  },
+ "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.3"
+  }
+}

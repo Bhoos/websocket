@@ -11,7 +11,7 @@
     "test": "yarn build && node es6/index.js"
   },
   "dependencies": {
-    "@bhoos/websocket": "^0.0.0",
+    "@bhoos/websocket-node": "^0.0.1",
     "ws": "^8.8.1"
   },
   "devDependencies": {
