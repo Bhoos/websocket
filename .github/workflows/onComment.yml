@@ -29,13 +29,12 @@ jobs:
       - name: Install Dependencies and publish packages
         run: |
           yarn
-          version=$(node -p "require('./package.json').version")
+          yarn build
+          yarn lerna run build
+          yarn lerna publish from-package --yes --no-verify-access --dist-tag next
+          version=$(node -p "require('./lerna.json').version")
           echo "RELEASE_VERSION=v${version}" >> $GITHUB_ENV
           echo "ISSUE_NUMBER=${{github.event.issue.number}}" >> $GITHUB_ENV
-          yarn build
-          yarn publish --tag next
-          git tag -a v${version} -m "v${version}"
-          git push && git push --tags
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
           
