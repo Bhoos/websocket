@@ -15,7 +15,8 @@
   "scripts": {
     "build:cjs": "tsc",
     "build:es6": "mkdir -p es6 && echo '{\"type\":\"module\"}' > es6/package.json && tsc --module es6 --outDir es6",
-    "build": "yarn build:cjs && yarn build:es6"
+    "build": "yarn build:cjs && yarn build:es6",
+    "release": "npm dist-tag add ${npm_package_name}@${npm_package_version} latest"
   },
  "publishConfig": {
     "registry": "https://npm.pkg.github.com/"

@@ -19,11 +19,7 @@ jobs:
       - name: Publish release
         run: |
           echo "ISSUE_NUMBER=$(echo $NUMBER | awk -F'[\#\)]' '{print $2}')" >> $GITHUB_ENV
-          pkg=$(node -p "require('./package.json').name")
-          version=$(node -p "require('./package.json').version")
-          echo "Releasing ${pkg}@${version} to latest"
-          # The following command doesn't work with `yarn tag` (2021-Jan-06)
-          npm dist-tag add ${pkg}@${version} latest
+          yarn release
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
           NUMBER: ${{github.event.release.name}}

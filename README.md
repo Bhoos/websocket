@@ -35,3 +35,6 @@ agent.onmessage = (event) => {
   console.log(event.data);
 };
 ```
+
+#### Note:
+After updating the code kindly run ``yarn lerna version --no-push --no-git-tag-version`` to update the versions.
