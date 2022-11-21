@@ -1,10 +1,10 @@
-import {Buffer, BufferType} from './buffer.js';
+import {Buffer, createBuffer, BufferType} from './buffer.js';
 
 export { BufferType }
 
 export type Config = {
   // all time intervals are in miliseconds
-  PING_INTERVAL: number; // Agents sends ping to management server every `PING_INTERVAL`
+  PING_INTERVAL: number; // Agents sends ping with PING_MESSAGE to the server every `PING_INTERVAL`
   PING_MESSAGE: string;
   RECONNECT_INTERVAL: number; // If in any case the connection is broken then a reconnect attempt is made every `RECONNECT_INTERVAL`
   MSG_BUFFER_SIZE: number; // number of messages to remember and send later (if the connection doesnot exist, or is broken)
@@ -65,13 +65,13 @@ export class ReliableWS<
     this.address = address;
     this.config = options;
     this.wsargs = wsargs;
-    this.msgBuffer = new Buffer(this.config.MSG_BUFFER_SIZE, this.config.BUFFER_TYPE);
+    this.msgBuffer = createBuffer<string>(this.config.MSG_BUFFER_SIZE, this.config.BUFFER_TYPE);
+    this.changeConfig(this.config);
     this.setupConnection();
   }
 
   private setupConnection() {
     if (this.shuttingDown) return;
-    this.changeConfig(this.config);
     //@ts-ignore
     this.ws = new WebSocket(this.address, this.wsargs);
 
@@ -99,7 +99,11 @@ export class ReliableWS<
 	this.ws?.send(msg);
       })
       this.msgBuffer.clear();
-      if (this.shuttingDown) this.ws?.close();
+      if (this.shuttingDown) {
+	this.ws?.close();
+      } else {
+	this.setupPingTimer();
+      }
     };
 
     this.ws.onclose = _event => {
@@ -113,7 +117,7 @@ export class ReliableWS<
       }
       // this means connection was closed unexpetedly
       this.wsOpen = false;
-      if (this.pingTimer) clearInterval(this.pingTimer);
+      this.clearPingTimer();
       this.reconnectTimeout = setTimeout(
 	this.setupConnection.bind(this),
 	this.config.RECONNECT_INTERVAL,
@@ -123,13 +127,12 @@ export class ReliableWS<
 
   changeConfig(config: Config) {
     this.config = config;
-    if (this.pingTimer) {
-      clearInterval(this.pingTimer);
+    if (this.pingTimer) { // if connection is ok and ping is running, reset its timer.
+      this.clearPingTimer();
+      this.setupPingTimer();
     }
-    if (this.config.PING_INTERVAL != 0)
-      this.pingTimer = setInterval(this.pingIfUp.bind(this), this.config.PING_INTERVAL);
     if (this.msgBuffer.size != this.config.MSG_BUFFER_SIZE) {
-      const newBuffer = new Buffer<string>(this.config.MSG_BUFFER_SIZE, this.config.BUFFER_TYPE);
+      const newBuffer = createBuffer<string>(this.config.MSG_BUFFER_SIZE, this.config.BUFFER_TYPE);
       newBuffer.add(...this.msgBuffer.toArray());
       this.msgBuffer = newBuffer;
     }
@@ -138,6 +141,17 @@ export class ReliableWS<
   private pingIfUp() {
     if (this.wsOpen)
       this.ws?.send(this.config.PING_MESSAGE);
+  }
+
+  private clearPingTimer() {
+    if (this.pingTimer) clearInterval(this.pingTimer);
+    this.pingTimer = undefined;
+  }
+
+  private setupPingTimer() {
+    if (this.config.PING_INTERVAL != 0 && !this.pingTimer) {
+      this.pingTimer = setInterval(this.pingIfUp.bind(this), this.config.PING_INTERVAL);
+    }
   }
 
   send(msg: any) {
@@ -153,7 +167,7 @@ export class ReliableWS<
       console.debug(
 	'.close() called on Reliable Websocket, before any connection was successful. Be careful',
       );
-    if (this.pingTimer) clearInterval(this.pingTimer);
+    if (this.pingTimer) this.clearPingTimer();
     if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
     if (this.ws && this.wsOpen) this.ws.close();
   }
