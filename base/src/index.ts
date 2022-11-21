@@ -157,8 +157,9 @@ export class ReliableWS<
   send(msg: any) {
     if (this.wsOpen && this.ws) {
       this.ws.send(msg);
+    } else {
+      this.msgBuffer.add(msg);
     }
-    this.msgBuffer.add(msg);
   }
 
   close() {
