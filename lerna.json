@@ -5,6 +5,6 @@
     "node"
   ],
   "npmClient": "yarn",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "useWorkspaces": true
 }
