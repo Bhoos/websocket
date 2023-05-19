@@ -60,6 +60,7 @@ export class ReliableWS<
   // reliable websocket will nonethless be trying connection attempts.
   // tries: number of times connection has been tried to establish since start or after the last successfull connection
   ondisconnect: ((event : CloseEv, tries : number) => void) | null = null;
+  onreconnect: ((event : Ev) => void) | null = null;
 
   constructor(address: string, options: Config, wsargs?: WSArgs ) {
     this.address = address;
@@ -87,6 +88,8 @@ export class ReliableWS<
       if (this.onopen && !this.onceOpened) {
 	this.onceOpened = true;
 	this.onopen(event); // this is triggerred on the first time only
+      } else if (this.onreconnect && this.onceOpened) {
+        this.onreconnect(event);
       }
 
       if (this.ws)
