@@ -40,7 +40,7 @@ export class ReliableWS<
   WSArgs
 > {
   private ws?: WebSocket;
-  private address: string;
+  private address: string | (() => string);
   private config: Config;
 
   private wsOpen: boolean = false;
@@ -62,7 +62,7 @@ export class ReliableWS<
   ondisconnect: ((event : CloseEv, tries : number) => void) | null = null;
   onreconnect: ((event : Ev) => void) | null = null;
 
-  constructor(address: string, options: Config, wsargs?: WSArgs ) {
+  constructor(address: string | (() => string), options: Config, wsargs?: WSArgs ) {
     this.address = address;
     this.config = options;
     this.wsargs = wsargs;
@@ -73,8 +73,13 @@ export class ReliableWS<
 
   private setupConnection() {
     if (this.shuttingDown) return;
+    let address;
+    if (typeof this.address === 'string')
+      address = this.address
+    else
+      address = this.address();
     //@ts-ignore
-    this.ws = new WebSocket(this.address, this.wsargs);
+    this.ws = new WebSocket(address, this.wsargs);
 
     this.ws.onerror = _event => {
       const event = _event as unknown as ErrorEv;
