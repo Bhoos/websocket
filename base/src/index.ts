@@ -1,4 +1,4 @@
-import {Buffer, createBuffer, BufferType} from './buffer.js';
+import { Buffer, createBuffer, BufferType } from './buffer.js';
 
 export { BufferType }
 
@@ -6,7 +6,7 @@ export type Config = {
   // all time intervals are in miliseconds
   PING_INTERVAL: number; // Agents sends ping with PING_MESSAGE to the server every `PING_INTERVAL`
   PING_MESSAGE: string;
-  RECONNECT_INTERVAL: number; // If in any case the connection is broken then a reconnect attempt is made every `RECONNECT_INTERVAL`
+  RECONNECT_INTERVAL: number | ((tries: number) => number); // If in any case the connection is broken then a reconnect attempt is made every `RECONNECT_INTERVAL`
   MSG_BUFFER_SIZE: number; // number of messages to remember and send later (if the connection doesnot exist, or is broken)
   BUFFER_TYPE: BufferType;
 };
@@ -49,8 +49,8 @@ export class ReliableWS<
   private pingTimer?: ReturnType<typeof setInterval>;
   private reconnectTimeout?: ReturnType<typeof setTimeout>;
   private shuttingDown: boolean = false;
-  private wsargs? : WSArgs;
-  private tries: number  = 0;
+  private wsargs?: WSArgs;
+  private tries: number = 0;
 
   onopen: ((event: Ev) => void) | null = null;
   onerror: ((event: ErrorEv) => void) | null = null;
@@ -59,10 +59,10 @@ export class ReliableWS<
   // this event is issued when the connection is disconnected
   // reliable websocket will nonethless be trying connection attempts.
   // tries: number of times connection has been tried to establish since start or after the last successfull connection
-  ondisconnect: ((event : CloseEv, tries : number) => void) | null = null;
-  onreconnect: ((event : Ev) => void) | null = null;
+  ondisconnect: ((event: CloseEv, tries: number) => void) | null = null;
+  onreconnect: ((event: Ev) => void) | null = null;
 
-  constructor(address: string | (() => string), options: Config, wsargs?: WSArgs ) {
+  constructor(address: string | (() => string), options: Config, wsargs?: WSArgs) {
     this.address = address;
     this.config = options;
     this.wsargs = wsargs;
@@ -91,26 +91,26 @@ export class ReliableWS<
       this.wsOpen = true;
       this.tries = 0;
       if (this.onopen && !this.onceOpened) {
-	this.onceOpened = true;
-	this.onopen(event); // this is triggerred on the first time only
+        this.onceOpened = true;
+        this.onopen(event); // this is triggerred on the first time only
       } else if (this.onreconnect && this.onceOpened) {
         this.onreconnect(event);
       }
 
       if (this.ws)
-	this.ws.onmessage = _event => {
-	  const event = _event as unknown as MessageEv;
-	  if (this.onmessage) this.onmessage(event);
-	};
+        this.ws.onmessage = _event => {
+          const event = _event as unknown as MessageEv;
+          if (this.onmessage) this.onmessage(event);
+        };
 
       this.msgBuffer.forEach((msg) => {
-	this.ws?.send(msg);
+        this.ws?.send(msg);
       })
       this.msgBuffer.clear();
       if (this.shuttingDown) {
-	this.ws?.close();
+        this.ws?.close();
       } else {
-	this.setupPingTimer();
+        this.setupPingTimer();
       }
     };
 
@@ -118,17 +118,17 @@ export class ReliableWS<
       const event = _event as unknown as CloseEv;
       this.tries++;
       if (this.shuttingDown) {
-	if (this.onclose) this.onclose(event);
-	return;
+        if (this.onclose) this.onclose(event);
+        return;
       } else {
-	if (this.ondisconnect) this.ondisconnect(event, this.tries);
+        if (this.ondisconnect) this.ondisconnect(event, this.tries);
       }
       // this means connection was closed unexpetedly
       this.wsOpen = false;
       this.clearPingTimer();
       this.reconnectTimeout = setTimeout(
-	this.setupConnection.bind(this),
-	this.config.RECONNECT_INTERVAL,
+        this.setupConnection.bind(this),
+        this.getReconnectionInterval(),
       );
     };
   }
@@ -162,6 +162,12 @@ export class ReliableWS<
     }
   }
 
+  private getReconnectionInterval() {
+    return (typeof this.config.RECONNECT_INTERVAL === 'number')
+      ? this.config.RECONNECT_INTERVAL
+      : this.config.RECONNECT_INTERVAL(this.tries);
+  }
+
   send(msg: any) {
     if (this.wsOpen && this.ws) {
       this.ws.send(msg);
@@ -172,9 +178,9 @@ export class ReliableWS<
 
   close() {
     this.shuttingDown = true;
-    if (!this.onceOpened && this.config.RECONNECT_INTERVAL != 0)
+    if (!this.onceOpened && this.getReconnectionInterval() != 0)
       console.debug(
-	'.close() called on Reliable Websocket, before any connection was successful. Be careful',
+        '.close() called on Reliable Websocket, before any connection was successful. Be careful',
       );
     if (this.pingTimer) this.clearPingTimer();
     if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
