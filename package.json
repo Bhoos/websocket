@@ -1,5 +1,5 @@
 {
-  "name": "@bhoos/websocket",
+  "name": "@bhoos/websocket-repo",
   "private": true,
   "workspaces": [
     "base",
