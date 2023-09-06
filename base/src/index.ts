@@ -193,5 +193,6 @@ export class ReliableWS<
     if (this.pingTimer) this.clearPingTimer();
     if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
     if (this.ws && this.wsOpen) this.ws.close();
+    this.msgBuffer.clear();
   }
 }
