@@ -176,11 +176,12 @@ export class ReliableWS<
       : this.config.RECONNECT_INTERVAL(this.tries);
   }
 
-  send(msg: any) {
+  send(msg: any): boolean {
     if (this.wsOpen && this.ws) {
       this.ws.send(msg);
+      return true;
     } else {
-      this.msgBuffer.add(msg);
+      return this.msgBuffer.add(msg);
     }
   }
 
