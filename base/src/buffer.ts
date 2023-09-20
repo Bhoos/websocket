@@ -5,7 +5,7 @@ export enum BufferType {
 
 export interface Buffer <T> {
   size : number; // Total number of items that can be added to the buffer.
-  add(...items : T[]) : void; // Add an item. Maynot be added if there's no space, as per the rules of the buffer.
+  add(...items : T[]) : boolean; // Add items. Maynot be added if there's no space, as per the rules of the buffer.
   clear() : void; // Remove all items from buffer
   forEach(fn:(el:T) => void) :void; // Loop through all existing items. Earlier ones first.
   toArray(): T[]; // Return an array of all existing items with earlier ones in the beginning of array.
@@ -42,8 +42,9 @@ export class RingBuffer<T> implements Buffer<T> {
     this.count = Math.min(this.count + 1 , this.size);
   }
 
-  add(...items : T[]) : void{
+  add(...items : T[]): boolean {
     items.forEach(this.addItem.bind(this));
+    return this.size >= items.length;
   }
 
   clear(): void {
@@ -85,7 +86,7 @@ export class FixedQueueBuffer<T> implements Buffer<T>{
     this.buffer = Array(size);
   }
 
-  add(...items : T[]) : void {
+  add(...items : T[]) : boolean {
     // Add items to buffer (starting from first) until the buffer is full.
     const freeSize = this.size - this.count;
     const len = Math.min(items.length, freeSize);
@@ -93,6 +94,7 @@ export class FixedQueueBuffer<T> implements Buffer<T>{
       this.buffer[this.count] = items[i];
       this.count++;
     }
+    return freeSize >= items.length;
   }
 
   clear(): void {
