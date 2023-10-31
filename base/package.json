@@ -1,6 +1,6 @@
 {
   "name": "@bhoos/websocket-base",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "description": "reliable websocket client",
   "repository": "https://github.com/Bhoos/websocket",
   "author": "Bibek Panthi <bpanthi977@gmail.com>",

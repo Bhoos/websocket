@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import { ClientOptions, Event, CloseEvent, MessageEvent, ErrorEvent} from 'ws';
+import { ClientOptions, CloseEvent, MessageEvent, ErrorEvent} from 'ws';
 import { ClientRequestArgs } from 'http';
 import { ReliableWS as WS, BufferType } from '@bhoos/websocket-base'
 
@@ -13,6 +13,6 @@ declare global {
   ) => WebSocket
 }
 
-export class ReliableWS extends WS<Event, ErrorEvent, CloseEvent, MessageEvent, ClientOptions | ClientRequestArgs> {
+export class ReliableWS extends WS<ErrorEvent, CloseEvent, MessageEvent, ClientOptions | ClientRequestArgs> {
 }
 export {BufferType}
