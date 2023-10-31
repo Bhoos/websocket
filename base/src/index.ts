@@ -184,12 +184,14 @@ export class ReliableWS<
       : this.config.RECONNECT_INTERVAL(this.tries);
   }
 
-  send(msg: any): boolean {
+  send(msg: any, queue: boolean = true): boolean {
     if (this.wsOpen && this.ws) {
       this.ws.send(msg);
       return true;
-    } else {
+    } else if (queue) {
       return this.msgBuffer.add(msg);
+    } else {
+      return false;
     }
   }
 
