@@ -5,6 +5,7 @@
     "strict": true,
     "target": "es2017",
     "lib": ["es2017"],
+    "types": ["node"],
     "module": "commonjs",
     "esModuleInterop": true,
     "noImplicitAny": true,

@@ -3,8 +3,8 @@
   "private": true,
   "workspaces": [
     "base",
-    "node",
-    "browser"
+    "browser",
+    "node"
   ],
   "scripts": {
     "build": "lerna run build",
