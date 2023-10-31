@@ -12,20 +12,6 @@ export type Config = {
 };
 
 interface Event {
-  type: string;
-}
-
-interface ErrorEvent extends Event {
-}
-
-interface CloseEvent extends Event {
-  wasClean: boolean;
-  code: number;
-  reason: string;
-}
-
-interface MessageEvent extends Event {
-  data: any;
 }
 
 // WSAgent provides a reliable websocket connection
@@ -33,10 +19,9 @@ interface MessageEvent extends Event {
 // and also keeps a buffer for messages that were send while the connection is down
 // and those messages are later sent when connection is up
 export class ReliableWS<
-  Ev extends Event,
-  ErrorEv extends ErrorEvent,
-  CloseEv extends CloseEvent,
-  MessageEv extends MessageEvent,
+  ErrorEv extends Event,
+  CloseEv extends Event,
+  MessageEv extends Event,
   WSArgs
 > {
   private ws?: WebSocket;
@@ -52,7 +37,7 @@ export class ReliableWS<
   private wsargs?: WSArgs;
   private tries: number = 0;
 
-  onopen: ((event: Ev) => void) | null = null;
+  onopen: (() => void) | null = null;
   onerror: ((event: ErrorEv) => void) | null = null;
   onclose: ((event: CloseEv) => void) | null = null;
   onmessage: ((event: MessageEv) => void) | null = null;
@@ -60,7 +45,7 @@ export class ReliableWS<
   // reliable websocket will nonethless be trying connection attempts.
   // tries: number of times connection has been tried to establish since start or after the last successfull connection
   ondisconnect: ((event: CloseEv, tries: number) => void) | null = null;
-  onreconnect: ((event: Ev) => void) | null = null;
+  onreconnect: (() => void) | null = null;
 
   constructor(address: string | (() => string | null), options: Config, wsargs?: WSArgs) {
     this.address = address;
@@ -94,15 +79,14 @@ export class ReliableWS<
       if (this.onerror) this.onerror(event);
     };
 
-    this.ws.onopen = _event => {
-      const event = _event as unknown as Ev;
+    this.ws.onopen = () => {
       this.wsOpen = true;
       this.tries = 0;
       if (this.onopen && !this.onceOpened) {
         this.onceOpened = true;
-        this.onopen(event); // this is triggerred on the first time only
+        this.onopen(); // this is triggerred on the first time only
       } else if (this.onreconnect && this.onceOpened) {
-        this.onreconnect(event);
+        this.onreconnect();
       }
 
       if (this.ws)
