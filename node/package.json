@@ -1,10 +1,10 @@
 {
   "name": "@bhoos/websocket-node",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "main": "es6/index.js",
   "license": "MIT",
   "dependencies": {
-    "@bhoos/websocket-base": "^0.2.0",
+    "@bhoos/websocket-base": "^0.3.0",
     "ws": "^8.8.1"
   },
   "type": "module",
@@ -22,6 +22,6 @@
     "registry": "https://npm.pkg.github.com/"
   },
   "devDependencies": {
-    "@types/ws": "^8.5.3"
+    "@types/ws": "^8.0.0"
   }
 }
