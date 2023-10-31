@@ -7,9 +7,15 @@
   "license": "MIT",
   "main": "dist/index.js",
   "module": "es6/index.js",
-  "type": "module",
   "types": "src/index.ts",
   "react-native": "src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./es6/index.js",
+      "require": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "es6",
     "dist",
@@ -23,8 +29,5 @@
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
-  },
-  "devDependencies": {
-    "typescript": "^4.1.3"
   }
 }

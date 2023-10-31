@@ -2,8 +2,17 @@ import WebSocket from 'ws';
 import { ClientOptions, Event, CloseEvent, MessageEvent, ErrorEvent} from 'ws';
 import { ClientRequestArgs } from 'http';
 import { ReliableWS as WS, BufferType } from '@bhoos/websocket-base'
-//@ts-ignore
-global.WebSocket = WebSocket
+
+type NodeWS = WebSocket
+declare global {
+  type WebSocket = NodeWS
+  var WebSocket: new (
+    address: string | URL,
+    protocols?: string | string[],
+    options?: WebSocket.ClientOptions | ClientRequestArgs,
+  ) => WebSocket
+}
+
 export class ReliableWS extends WS<Event, ErrorEvent, CloseEvent, MessageEvent, ClientOptions | ClientRequestArgs> {
 }
 export {BufferType}
