@@ -133,12 +133,20 @@ export class ReliableWS<
       }
       // this means connection was closed unexpetedly
       this.wsOpen = false;
+      this.ws = undefined;
       this.clearPingTimer();
       this.reconnectTimeout = setTimeout(
         this.setupConnection.bind(this),
         this.getReconnectionInterval(),
       );
     };
+  }
+
+  tryConnection() {
+    if (this.shuttingDown) return false;
+    if (this.wsOpen || this.ws) return false;
+    clearTimeout(this.reconnectTimeout)
+    this.setupConnection();
   }
 
   changeConfig(config: Config) {
